@@ -101,5 +101,29 @@ def history_label():
             "status": 404
         }), 404)
 
+@app.route("/delete_history/<string:id>", methods=['DELETE'])
+def delete_history(id):
+    if (request.method == 'DELETE'):
+        try:
+            cursor = mysql.connection.cursor()
+            cursor.execute(""" DELETE FROM hoax_detection_results WHERE id = %s """, (id,))
+            mysql.connection.commit()
+            cursor.close()
+
+            return (jsonify({
+                "message": "Success delete detection history from DB",
+                "status": 200
+            }), 200)
+        except Exception as e:
+            return (jsonify({
+                "message": "Failed to delete detection history from DB : " + str(e),
+                "status": 409
+            }), 409)
+    else:
+        return (jsonify({
+            "message": "resource not found",
+            "status": 404
+        }), 404)
+
 if __name__ == "__main__":
     app.run()
