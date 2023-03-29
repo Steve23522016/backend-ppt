@@ -47,6 +47,59 @@ def calculate_label():
             "message": "resource not found",
             "status": 404
         }), 404)
+    
+@app.route("/history_label", methods=['POST'])
+def history_label():
+    if (request.method == 'POST'):
+        try:
+            inputKeyword = request.form.get('inputKeyword')
+            inputDetectionType = request.form.get('inputDetectionType')
+            inputResultType = request.form.get('inputResultType')
+            
+            # CONSTRUCT SELECT QUERY WITH/WITHOUT FILTER
+            queryString = 'SELECT * FROM hoax_detection_results '
+            queryWhereCondition = []
+            valueWhereCondition = ()
+            if inputKeyword:
+                queryWhereCondition.append('input_text LIKE %s')
+                valueWhereCondition += (f"%{inputKeyword}%",)
+            if inputDetectionType:
+                queryWhereCondition.append('process_category = %s')
+                valueWhereCondition += (inputDetectionType,)
+            if inputResultType:
+                queryWhereCondition.append('output_label = %s')
+                valueWhereCondition += (inputResultType,)
+            queryWhereCondition = ' AND '.join(queryWhereCondition)
+            if queryWhereCondition:
+                queryWhereCondition = ' WHERE ' + queryWhereCondition
+            queryString = queryString + queryWhereCondition + ' ORDER BY date DESC'
+
+            # EXECUTE QUERY SELECT ABOVE
+            cursor = mysql.connection.cursor()
+            cursor.execute(queryString, valueWhereCondition)
+            row_headers=[x[0] for x in cursor.description]
+            data = cursor.fetchall()
+            json_data = []
+            for result in data:
+                json_data.append(dict(zip(row_headers,result)))
+            mysql.connection.commit()
+            cursor.close()
+
+            return (jsonify({
+                "message": "Success fetching hoax detection history from DB",
+                "data": json_data,
+                "status": 200
+            }), 200)
+        except Exception as e:
+            return (jsonify({
+                "message": "Failed to fetch hoax detection history from DB : " + str(e),
+                "status": 409
+            }), 409)
+    else:
+        return (jsonify({
+            "message": "resource not found",
+            "status": 404
+        }), 404)
 
 if __name__ == "__main__":
     app.run()
