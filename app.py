@@ -19,6 +19,12 @@ def calculate_label():
         try:
             inputText = request.form.get('inputText')
             inputType = request.form.get('inputType')
+
+            if (inputType == 'summarization'):
+                outputSummarization = 'This is sample of summarization text'
+            else:
+                outputSummarization = 'None'
+
             randomNumber = random.randint(1, 10)
             if (randomNumber <= 5):
                 outputLabel = 'hoax'
@@ -26,7 +32,7 @@ def calculate_label():
                 outputLabel = 'not hoax'
             
             cursor = mysql.connection.cursor()
-            cursor.execute(''' INSERT INTO hoax_detection_results(input_text, process_category, output_label) VALUES (%s, %s, %s) ''', (inputText, inputType, outputLabel))
+            cursor.execute(''' INSERT INTO hoax_detection_results(input_text, process_category, summarization_result, output_label) VALUES (%s, %s, %s, %s) ''', (inputText, inputType, outputSummarization, outputLabel))
             mysql.connection.commit()
             cursor.close()
 
@@ -34,6 +40,7 @@ def calculate_label():
                 "message": "Success insert hoax detection result into DB",
                 "inputText": inputText,
                 "inputType": inputType,
+                "summarizationResult": outputSummarization,
                 "labelResult": outputLabel,
                 "status": 201
             }), 201)
