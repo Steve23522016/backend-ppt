@@ -23,7 +23,7 @@ def calculate_label():
             if (inputType == 'summarization'):
                 outputSummarization = 'This is sample of summarization text'
             else:
-                outputSummarization = 'None'
+                outputSummarization = None
 
             randomNumber = random.randint(1, 10)
             if (randomNumber <= 5):
