@@ -3,6 +3,46 @@ from flask_mysqldb import MySQL
 from flask_cors import CORS
 import random
 
+import os
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, T5Tokenizer, T5ForConditionalGeneration
+
+hx_tokenizer_non_summarized = AutoTokenizer.from_pretrained("eiproject/IndoBERT-NotSummarized-HoaxDetection")
+hx_model_non_summarized = AutoModelForSequenceClassification.from_pretrained("eiproject/IndoBERT-NotSummarized-HoaxDetection")
+
+hx_tokenizer_summarized = AutoTokenizer.from_pretrained("eiproject/IndoBERT-Summarized-HoaxDetection")
+hx_model_summarized = AutoModelForSequenceClassification.from_pretrained("eiproject/IndoBERT-Summarized-HoaxDetection")
+
+summarization_tokenizer = T5Tokenizer.from_pretrained("panggi/t5-base-indonesian-summarization-cased")
+summarization_model = T5ForConditionalGeneration.from_pretrained("panggi/t5-base-indonesian-summarization-cased")
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+hx_model_summarized.to(device)
+
+def predict_hoax(articles, tokenizer, model):
+    tokenized = tokenizer(articles, return_tensors="pt", padding=True, truncation=True, max_length=512).to(device)
+    with torch.no_grad():
+        logits = model(**tokenized).logits
+    predicted_class_id = logits.argmax().item()
+    return predicted_class_id
+
+
+def generate_summaries(articles, tokenizer, model, max_length=512):
+    input_ids = tokenizer(articles, return_tensors='pt', padding=True).to(device)
+    with torch.no_grad():
+        summary_ids = model.generate(
+            input_ids["input_ids"],
+            max_length=max_length, 
+            num_beams=2,
+            repetition_penalty=2.5, 
+            length_penalty=1.0, 
+            early_stopping=True,
+            no_repeat_ngram_size=2,
+            use_cache=True)
+    summary_text = tokenizer.batch_decode(summary_ids, skip_special_tokens=True)
+    return summary_text
+
+
 app = Flask(__name__)
 CORS(app)
 
@@ -21,12 +61,16 @@ def calculate_label():
             inputType = request.form.get('inputType')
 
             if (inputType == 'summarization'):
-                outputSummarization = 'This is sample of summarization text'
+                outputSummarization = generate_summaries(inputText, summarization_tokenizer, summarization_model)
             else:
                 outputSummarization = None
 
-            randomNumber = random.randint(1, 10)
-            if (randomNumber <= 5):
+            if outputSummarization:
+                prediction_id = predict_hoax(outputSummarization, hx_tokenizer_summarized, hx_model_summarized)
+            else:
+                prediction_id = predict_hoax(inputText, hx_tokenizer_non_summarized, hx_model_non_summarized)
+
+            if (prediction_id == 1):
                 outputLabel = 'hoax'
             else:
                 outputLabel = 'not hoax'
@@ -131,6 +175,7 @@ def delete_history(id):
             "message": "resource not found",
             "status": 404
         }), 404)
+
 
 if __name__ == "__main__":
     app.run()
