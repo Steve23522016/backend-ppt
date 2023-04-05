@@ -46,10 +46,10 @@ def generate_summaries(articles, tokenizer, model, max_length=512):
 app = Flask(__name__)
 CORS(app)
 
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'persija@2020OK'
-app.config['MYSQL_DB'] = 'project-ppt'
+app.config['MYSQL_HOST'] = '103.31.38.80'
+app.config['MYSQL_USER'] = 'if5200'
+app.config['MYSQL_PASSWORD'] = '@if5200PPT'
+app.config['MYSQL_DB'] = 'if5200db'
  
 mysql = MySQL(app)
 
