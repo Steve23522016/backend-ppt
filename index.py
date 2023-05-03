@@ -27,18 +27,49 @@ def predict_hoax(articles, tokenizer, model):
     return predicted_class_id
 
 
-def generate_summaries(articles, tokenizer, model, max_length=512):
+def get_token_length(input_ids):     
+    return len(input_ids["input_ids"][0])
+
+
+def get_summarization_length(token_length):
+    long_min_length = 480
+    mid_min_length = 300
+
+    long_sum_max_length = long_min_length
+    long_sum_min_length = 380
+
+    mid_sum_max_length = mid_min_length
+    mid_sum_min_length = 256
+
+    short_length_ratio = 0.75
+
+    if token_length > long_min_length:
+        return long_sum_min_length, long_sum_max_length
+    elif (token_length > mid_min_length) & (token_length <= long_min_length):
+        return mid_sum_min_length, mid_sum_max_length
+    elif token_length <= mid_min_length:
+        return int(short_length_ratio * token_length), token_length
+    else:
+        return None, None
+
+
+def generate_summaries(articles, tokenizer, model):
     input_ids = tokenizer(articles, return_tensors='pt', padding=True).to(device)
+    token_length = get_token_length(input_ids)
+    sum_min_length, sum_max_length = get_summarization_length(token_length)
+    
     with torch.no_grad():
         summary_ids = model.generate(
             input_ids["input_ids"],
-            max_length=max_length, 
+            min_length=sum_min_length,
+            max_length=sum_max_length, 
             num_beams=2,
             repetition_penalty=2.5, 
             length_penalty=1.0, 
             early_stopping=True,
             no_repeat_ngram_size=2,
             use_cache=True)
+        
     summary_text = tokenizer.batch_decode(summary_ids, skip_special_tokens=True)
     return summary_text
 
