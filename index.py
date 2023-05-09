@@ -99,7 +99,7 @@ def calculate_label():
             if outputSummarization:
                 prediction_id = predict_hoax(outputSummarization, hx_tokenizer_summarized, hx_model_summarized)
             else:
-                prediction_id = predict_hoax(inputText, hx_tokenizer_non_summarized, hx_model_non_summarized)
+                prediction_id = predict_hoax(inputText, hx_tokenizer_summarized, hx_model_summarized)
 
             if (prediction_id == 1):
                 outputLabel = 'hoax'
